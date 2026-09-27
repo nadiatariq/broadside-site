@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broadside Invitation</title>
+<meta name="description" content="You've been invited to a design in Broadside.">
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #FAF8F3; --card: #FBF9F4; --ink: #1A1A18; --body: #4A463E; --muted: #7A756A;
+    --line: #E6E1D6; --accent: #D8431C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141415; --card: #1C1C1E; --ink: #EDECE8; --body: #C4C4CA; --muted: #9C9CA3;
+      --line: #2E2E31; --accent: #FF8A5C;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--body); min-height: 100vh;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 48px 16px; display: flex; flex-direction: column; gap: 18px; }
+  .brand { font-weight: 800; letter-spacing: 0.12em; font-size: 13px; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 24px 20px; }
+  h1 { color: var(--ink); font-size: 30px; line-height: 1.15; margin: 0 0 8px; }
+  p { margin: 0; }
+  .open {
+    display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 17px;
+    background: var(--ink); color: var(--bg); border-radius: 999px; padding: 15px 20px;
+  }
+  ol { margin: 0; padding-left: 20px; }
+  li { margin: 6px 0; }
+  .note { color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">BROADSIDE</div>
+  <div class="card">
+    <h1>You're invited to a design</h1>
+    <p>Someone shared a Broadside poster with you so you can view it, comment on it or help edit it.</p>
+  </div>
+  <a class="open" id="open" href="#">Open in Broadside</a>
+  <ol class="note">
+    <li>Open this link on your iPhone.</li>
+    <li>Tap Open in Broadside, then sign in with Apple or Google.</li>
+    <li>The design appears in Projects › Shared.</li>
+  </ol>
+</main>
+<script>
+  const id = new URLSearchParams(location.search).get("id") || "";
+  if (/^[A-Za-z0-9]{10,40}$/.test(id)) {
+    document.getElementById("open").href = "broadside://i/" + id;
+  } else {
+    document.querySelector("h1").textContent = "This invitation link doesn't look right";
+    document.getElementById("open").hidden = true;
+  }
+</script>
+</body>
+</html>
