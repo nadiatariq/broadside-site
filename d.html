@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broadside Design</title>
+<meta name="description" content="A poster made in Broadside.">
+<meta name="robots" content="noindex">
+<style>
+  :root {
+    --bg: #FAF8F3; --card: #FBF9F4; --ink: #1A1A18; --body: #4A463E; --muted: #7A756A;
+    --line: #E6E1D6; --accent: #D8431C; --accent-ink: #FFFFFF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141415; --card: #1C1C1E; --ink: #EDECE8; --body: #C4C4CA; --muted: #9C9CA3;
+      --line: #2E2E31; --accent: #FF8A5C; --accent-ink: #141415;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--body); min-height: 100vh;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 32px 16px 48px; display: flex; flex-direction: column; gap: 20px; }
+  .brand { font-weight: 800; letter-spacing: 0.12em; font-size: 13px; color: var(--muted); }
+  .poster {
+    width: 100%; border-radius: 14px; background: var(--card); border: 1px solid var(--line);
+    min-height: 300px; display: grid; place-items: center; overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  }
+  .poster img { width: 100%; height: auto; display: block; }
+  h1 { color: var(--ink); font-size: 28px; line-height: 1.15; margin: 0; overflow-wrap: anywhere; }
+  .by { color: var(--muted); margin: 4px 0 0; font-size: 15px; }
+  .open {
+    display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 17px;
+    background: var(--ink); color: var(--bg); border-radius: 999px; padding: 15px 20px;
+  }
+  .note { color: var(--muted); font-size: 14px; text-align: center; margin: 0; }
+  .message { color: var(--body); text-align: center; padding: 24px; }
+  .spinner {
+    width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--accent);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand">BROADSIDE</div>
+  <div class="poster" id="poster"><div class="spinner" aria-label="Loading"></div></div>
+  <div id="details" hidden>
+    <h1 id="name"></h1>
+    <p class="by" id="by"></p>
+  </div>
+  <a class="open" id="open" hidden>Open in Broadside</a>
+  <p class="note" id="note" hidden>Have the Broadside app on your iPhone? Tap above to open this design in it.</p>
+</main>
+<script>
+(async () => {
+  const project = "broadside-studio";
+  const base = "https://firestore.googleapis.com/v1/projects/" + project + "/databases/(default)/documents/designs/";
+  const poster = document.getElementById("poster");
+  const id = new URLSearchParams(location.search).get("id") || "";
+
+  const fail = (text) => {
+    poster.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "message";
+    p.textContent = text;
+    poster.appendChild(p);
+  };
+
+  if (!/^[A-Za-z0-9]{10,40}$/.test(id)) {
+    fail("This link doesn't look right. Ask the person who sent it to share it again.");
+    return;
+  }
+
+  const getDoc = async (path) => {
+    const response = await fetch(base + path);
+    if (!response.ok) throw new Error(String(response.status));
+    return (await response.json()).fields || {};
+  };
+
+  try {
+    const design = await getDoc(id);
+    const version = design.version ? design.version.stringValue : "";
+    const parts = design.previewParts ? Number(design.previewParts.integerValue) : 0;
+    const name = design.name ? design.name.stringValue : "Untitled design";
+    const owner = design.ownerName ? design.ownerName.stringValue : "";
+
+    document.title = name + " · Broadside";
+    document.getElementById("name").textContent = name;
+    document.getElementById("by").textContent = owner ? "Shared by " + owner : "";
+    document.getElementById("details").hidden = false;
+
+    const open = document.getElementById("open");
+    open.href = "broadside://d/" + id;
+    open.hidden = false;
+    document.getElementById("note").hidden = false;
+
+    if (!version || parts < 1) {
+      fail("The preview isn't ready yet. Try again in a moment.");
+      return;
+    }
+
+    const chunks = [];
+    for (let i = 0; i < parts; i++) {
+      const part = await getDoc(id + "/parts/p-" + version + "-" + i);
+      const binary = atob(part.data.bytesValue);
+      const bytes = new Uint8Array(binary.length);
+      for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+      chunks.push(bytes);
+    }
+    const img = new Image();
+    img.alt = name;
+    img.src = URL.createObjectURL(new Blob(chunks, { type: "image/jpeg" }));
+    img.onload = () => { poster.innerHTML = ""; poster.appendChild(img); };
+    img.onerror = () => fail("The preview couldn't be shown.");
+  } catch (error) {
+    fail(error.message === "403" || error.message === "404"
+      ? "This link is off, or the design was removed."
+      : "Couldn't load this design. Check your connection and try again.");
+  }
+})();
+</script>
+</body>
+</html>
